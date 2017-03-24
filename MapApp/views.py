@@ -50,20 +50,22 @@ def handle(es_request):
         elif message == 'Company':
             keyword_index = 9
 
-        domain= 'http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/_search?q='
+        domain= 'http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
         result = search(domain, keywords[keyword_index])
-        # print result
-        data = [res['_source']['coordinates'] for res in result['hits']['hits']]
+        c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
+        t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
 
-        hits = len(data)
-        #print (hits)
+        hits = len(c_data)
         length = {'hits': hits}
         coordinates = {}
-        for i in range(hits):
-            if (data[i][0] < -90):
-                data[i][0] += 180
-            coordinates[i] = {'lat': data[i][1], 'lng': data[i][0]}
+        twitts = {}
 
-        data = {'coordinates': coordinates, 'length': length}
+        for i in range(hits):
+            if (c_data[i][0] < -90):
+                c_data[i][0] += 180
+            coordinates[i] = {'lat': c_data[i][1], 'lng': c_data[i][0]}
+            twitts[i] = t_data[i]
+
+        data = {'coordinates': coordinates, 'length': length, 'twitts': twitts}
 
         return JsonResponse(data)

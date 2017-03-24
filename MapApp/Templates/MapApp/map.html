@@ -105,7 +105,6 @@
             event.preventDefault();
             var key_word = document.getElementById("KeyWords");
             key_word_value = key_word.options[key_word.selectedIndex].value;
-            console.log(key_word_value);
             $.ajax({
                 url: '/handle/',
                 type: 'POST',
@@ -121,58 +120,38 @@
                         rotateControl: true,
                         fullscreenControl: true
                     });
-
-                    console.log(json);
-                    console.log(json.length);
-                    console.log(json.coordinates)
+                    
                     for (i = 0; i < json.length.hits; i++) {
-                        console.log(json.coordinates[i].lat);
-                        console.log(json.coordinates[i].lng);
-                        var latlng = new google.maps.LatLng(parseFloat(json.coordinates[i].lat), parseFloat(json.coordinates[i].lng));
-                        console.log(latlng);
+                        var latlng = new google.maps.LatLng(parseFloat(json.coordinates[i].lat),
+                            parseFloat(json.coordinates[i].lng));
+                        var contentString = json.twitts[i];
 
                         var marker = new google.maps.Marker({
                             map: map,
                             position: latlng,
-                            animation: google.maps.Animation.DROP
-                        })
-                        marker.setMap(map)
+                            animation: google.maps.Animation.DROP,
+                            title: 'Title'
+                        });
+
+                        addInfo(marker, contentString);
+                        marker.setMap(map);
                     }
 
                 }
             });
         });
+    }
 
-        map.data.setStyle(function (feature) {
-            var magnitude = feature.getProperty('mag');
-            return {
-                icon: getCircle(magnitude)
-            };
+    function addInfo(marker, contentString) {
+        var infowindow = new google.maps.InfoWindow({
+            content: contentString
         });
+        marker.addListener('click', function () {
+            infowindow.open(map, marker);
+        })
     }
 
-    function getCircle(magnitude) {
-        return {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: 'red',
-            fillOpacity: .2,
-            scale: Math.pow(2, magnitude) / 2,
-            strokeColor: 'white',
-            strokeWeight: .5
-        };
-    }
 
-    function eqfeed_callback(results) {
-        map.data.addGeoJson(results);
-    }
-
-    function openNav() {
-        document.getElementById("mySidenav").style.width = "250px";
-    }
-
-    function closeNav() {
-        document.getElementById("mySidenav").style.width = "0";
-    }
 </script>
 <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDi0C_QfGBtgmTCKCa68I7Q8t6K6wb14Q&callback=initMap">
