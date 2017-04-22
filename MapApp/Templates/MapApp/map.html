@@ -12,22 +12,12 @@
 
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <style>
-
-        html {
-            height: 96%
-        }
-
-        body {
-            height: 93%;
-            margin: 0;
-            padding: 0;
-        }
-
-        #container {
-            width: 100%;
-            height: 100%
-        }
-
+        html {height: 96%}
+        body {height: 93%;margin: 0;padding: 0;}
+        h1 {text-align: center;text-shadow: firebrick;}
+        h3 {text-align: center;text-shadow: ghostwhite;}
+        #container {width: 100%;height: 100%}
+        #map {height: 100%}
         #nav {
             z-index: 100;
             position: absolute;
@@ -38,21 +28,6 @@
             width: < fixed px >;
             height: < fixed px >;
         }
-
-        #map {
-            height: 100%
-        }
-
-        h1 {
-            text-align: center;
-            text-shadow: firebrick;
-        }
-
-        h3 {
-            text-align: center;
-            text-shadow: ghostwhite;
-        }
-
     </style>
     {% load static %}
 </head>
@@ -79,7 +54,7 @@
                 <button type="submit" class="btn btn-primary" style="width:100px" onsubmit="initMap()">Search</button>
             </div>
         </form>
-
+        
     </div>
     <h1>{{ app_name }}</h1>
     <div id="map"></div>
@@ -174,21 +149,6 @@
             $.ajax(getting);
         });
     }
-
-{#    function myQuery() {#}
-{#        var key_word = document.getElementById("KeyWords");#}
-{#        var key_word_value = key_word.options[key_word.selectedIndex].value;#}
-{#        $.ajax({#}
-{#            url: '/handle/',#}
-{#            type: 'GET',#}
-{#            data: {Search: key_word_value, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},#}
-{##}
-{#            success: function(json) {#}
-{#                $("#tweetspan").text(json.hits);#}
-{#            }#}
-{#        });#}
-{#        setTimeout(myQuery,1000);#}
-{#    }#}
 
     function addInfo(marker, contentString) {
         var infowindow = new google.maps.InfoWindow({
