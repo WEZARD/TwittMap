@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import requests
 import json
+import urllib2
 
 keywords = ['Sports, football, basketball, tennis, baseball, nba',
             'Game, data, lol, cs, devil may cry',
@@ -16,10 +18,14 @@ keywords = ['Sports, football, basketball, tennis, baseball, nba',
 
 
 def index(request):
+    # from test_data import SendData
+    # sendData = SendData()
+    # sendData.begin()
     return render(request, 'MapApp/map.html', {'app_name': 'TwittMap'})
 
 
 def handle(es_request):
+    keyword_index = 0
     if es_request.method == "POST":
         message = es_request.POST.get('Search', None)
 
@@ -50,22 +56,90 @@ def handle(es_request):
         elif message == 'Company':
             keyword_index = 9
 
-        domain= 'http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
+        domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
         result = search(domain, keywords[keyword_index])
         c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
         t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
+        s_data = [res['_source']['sentiment'] for res in result['hits']['hits']]
 
         hits = len(c_data)
         length = {'hits': hits}
         coordinates = {}
         twitts = {}
+        sentiments = {}
 
         for i in range(hits):
             if (c_data[i][0] < -90):
                 c_data[i][0] += 180
             coordinates[i] = {'lat': c_data[i][1], 'lng': c_data[i][0]}
             twitts[i] = t_data[i]
+            if(s_data[i]):
+                sentiments[i] = s_data[i]
+            else:
+                sentiments[i] = "null"
 
-        data = {'coordinates': coordinates, 'length': length, 'twitts': twitts}
-
+        data = {'coordinates': coordinates, 'length': length, 'twitts': twitts, 'sentiments': sentiments}
         return JsonResponse(data)
+    else:
+        message = es_request.POST.get('Search', None)
+
+        def search(url, term):
+            uri = url + term
+            response = requests.get(uri)
+            results = json.loads(response.text)
+            return results
+
+        if message == 'Sports':
+            keyword_index = 0
+        elif message == 'Game':
+            keyword_index = 1
+        elif message == 'Technology':
+            keyword_index = 2
+        elif message == 'Weather':
+            keyword_index = 3
+        elif message == 'Food':
+            keyword_index = 4
+        elif message == 'Fun':
+            keyword_index = 5
+        elif message == 'Traffic':
+            keyword_index = 6
+        elif message == 'Location':
+            keyword_index = 7
+        elif message == 'App':
+            keyword_index = 8
+        elif message == 'Company':
+            keyword_index = 9
+
+        domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
+        result = search(domain, keywords[keyword_index])
+        c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
+        hits = len(c_data)
+
+        data = {'hits': hits}
+        return JsonResponse(data)
+
+@csrf_exempt
+def handle_sns(request):
+    context = {"message":"Outside"}
+    if request.method == "GET":
+        return render(request, 'MapApp/map.html', {'app_name': 'TwittMap'})
+    else:
+        body = json.loads(request.body)
+        if body['Type'] == "SubscriptionConfirmation":
+            subscribleURL = body['SubscribeURL']
+            urllib2.urlopen(subscribleURL).read()
+        elif body['Type'] == "Notification":
+            message = json.loads(json.loads(body["Message"]).get('default'))
+            tweet = message.get('tweet')
+            lat = message.get('lat')
+            lng = message.get('lng')
+            sentiment = message.get('sentiment')
+
+            upload_data = {
+                "twitts": tweet,
+                "coordinates": [lat,lng],
+                "sentiment": sentiment
+            }
+            print requests.post('http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
+            context = {"message": "Notification"}
+    return render(request, 'MapApp/map.html', context, {'app_name': 'TwittMap'})

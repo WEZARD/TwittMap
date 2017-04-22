@@ -4,6 +4,9 @@ from tweepy.streaming import StreamListener
 import json
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 import requests
+from watson_developer_cloud import NaturalLanguageUnderstandingV1
+import watson_developer_cloud.natural_language_understanding.features.v1 as features
+
 
 consumer_key = 'RP3ZNSHdjd0LH0RlMS3rhpSo1'
 consumer_secret = 'i78LTPwoIbWs7zn8Do5E2Eb2uZqOTWnW8LUH7WcFk1MyAnNR5b'
@@ -14,19 +17,32 @@ access_token_secret = 'tMf1c9s0guQMU8gKhwJI31bl4EIphfRF5jBmBMxMcZ8q3'
 class MyStreamListener(StreamListener):
 
 	def on_status(self, status):
+		natural_language_understanding = NaturalLanguageUnderstandingV1(version='2017-02-27',username='c353af43-3172-455f-934a-daa55225e687',password='TLD5MMIRRGIh')
 		twitts = status.text
 		coordinates = status.coordinates
+		language = status.user.lang
 
-		if status.place:
+		if status.place and language == 'en':
 			if coordinates is not None and len(coordinates) > 0:
 				coordinates = status.coordinates['coordinates']
 				print 'coordinates: ', coordinates
 
+				try:
+					response = natural_language_understanding.analyze(
+						text=twitts,
+						features=[features.Sentiment()]
+					)
+					sentiment = response['sentiment']['document']['label']
+				except Exception as e:
+					sentiment = "neutral"
+				print sentiment
+
 				upload_data = {
 					"twitts": twitts,
-					"coordinates": coordinates
+					"coordinates": coordinates,
+					"sentiment": sentiment
 				}
-				print requests.post('http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
+				print requests.post('http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
 
 		return True
 		

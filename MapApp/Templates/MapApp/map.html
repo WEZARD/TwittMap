@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <!-- jQuery library -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
@@ -57,10 +58,8 @@
 </head>
 <body>
 <div id="container">
-
-
     <div id="nav">
-
+        <h4>Tweet Count: <span id="tweetspan"> 0 </span><h4>
         <h3>KeyWord</h3>
 
         <form id="listform" method="POST">{% csrf_token %}
@@ -104,7 +103,7 @@
         $('#listform').on('submit', function (event) {
             event.preventDefault();
             var key_word = document.getElementById("KeyWords");
-            key_word_value = key_word.options[key_word.selectedIndex].value;
+            var key_word_value = key_word.options[key_word.selectedIndex].value;
             $.ajax({
                 url: '/handle/',
                 type: 'POST',
@@ -121,30 +120,73 @@
                         fullscreenControl: true
                     });
                     
-                    for (i = 0; i < json.length.hits; i++) {
+                    for (var i = 0; i < json.length.hits; i++) {
                         var latlng = new google.maps.LatLng(parseFloat(json.coordinates[i].lat),
                             parseFloat(json.coordinates[i].lng));
                         var contentString = json.twitts[i];
+                        var sentiment = json.sentiments[i];
 
-                        var marker = new google.maps.Marker({
-                            map: map,
-                            position: latlng,
-                            animation: google.maps.Animation.DROP,
-                            title: 'Title'
-                        });
+                        if(sentiment == "positive") {
+                            var marker = new google.maps.Marker({
+                                map: map,
+                                animation: google.maps.Animation.DROP,
+                                position: latlng,
+                                title: 'Tweet',
+                                icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                            });
+                        } else if(sentiment == "negative") {
+                            var marker = new google.maps.Marker({
+                                map: map,
+                                animation: google.maps.Animation.DROP,
+                                position: latlng,
+                                title: 'Tweet',
+                                icon:'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                            });
+                        } else if(sentiment == "neutral") {
+                            var marker = new google.maps.Marker({
+                                map: map,
+                                animation: google.maps.Animation.DROP,
+                                position: latlng,
+                                title: 'Tweet',
+                                icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                            })
+                        } else {
+                            var marker = new google.maps.Marker({
+                                map: map,
+                                position: latlng,
+                                animation: google.maps.Animation.DROP,
+                                title: 'Tweet'
+                            });
+                        }
 
                         addInfo(marker, contentString);
                         marker.setMap(map);
                     }
-
+                    myQuery();
                 }
             });
         });
     }
 
+    function myQuery() {
+        var key_word = document.getElementById("KeyWords");
+        var key_word_value = key_word.options[key_word.selectedIndex].value;
+        $.ajax({
+            url: '/handle/',
+            type: 'GET',
+            data: {Search: key_word_value, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
+
+            success: function(json) {
+                $("#tweetspan").text(json.hits);
+            }
+        });
+        setTimeout(myQuery,1000);
+    }
+
     function addInfo(marker, contentString) {
         var infowindow = new google.maps.InfoWindow({
-            content: contentString
+            content: contentString,
+            maxWidth: 250
         });
         marker.addListener('click', function () {
             infowindow.open(map, marker);
