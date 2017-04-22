@@ -137,7 +137,7 @@ def handle_sns(request):
                 "coordinates": [lat,lng],
                 "sentiment": sentiment
             }
-            # print requests.post('http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
+            print requests.post('http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
             context = {"message": "Notification"}
-            # return JsonResponse(upload_data)
+
     return render(request, 'MapApp/map.html', context, {'app_name': 'TwittMap'})

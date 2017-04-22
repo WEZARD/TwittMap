@@ -59,7 +59,7 @@
 <body>
 <div id="container">
     <div id="nav">
-        <h4>Tweet Count: <span id="tweetspan"> 0 </span><h4>
+        <h4>Count: <span id="tweetspan"> 0 </span><h4>
         <h3>KeyWord</h3>
 
         <form id="listform" method="POST">{% csrf_token %}
@@ -189,30 +189,6 @@
 {#        });#}
 {#        setTimeout(myQuery,1000);#}
 {#    }#}
-    
-    function testMarker() {
-        $.ajax({
-            url: '/handle_sns/',
-            type: 'POST',
-
-            success: function(json) {
-                var latlng = new google.maps.LatLng(parseFloat(json.coordinates.lat),
-                            parseFloat(json.coordinates.lng));
-                var contentString = json.twitts;
-                var sentiment = json.sentiments;
-
-                var marker = new google.maps.Marker({
-                    map: map,
-                    position: latlng,
-                    animation: google.maps.Animation.DROP,
-                    title: 'Title'
-                });
-                addInfo(marker, contentString);
-                marker.setMap(map);
-                setTimeout(testMarker, 1000);
-            }
-        });
-    }
 
     function addInfo(marker, contentString) {
         var infowindow = new google.maps.InfoWindow({
