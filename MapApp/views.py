@@ -24,103 +24,100 @@ def index(request):
     return render(request, 'MapApp/map.html', {'app_name': 'TwittMap'})
 
 
-def handle(es_request):
+def search(url, term):
+    uri = url + term
+    response = requests.get(uri)
+    results = json.loads(response.text)
+    return results
+
+
+def getIndex(message):
     keyword_index = 0
-    if es_request.method == "POST":
-        message = es_request.POST.get('Search', None)
+    if message == 'Sports':
+        keyword_index = 0
+    elif message == 'Game':
+        keyword_index = 1
+    elif message == 'Technology':
+        keyword_index = 2
+    elif message == 'Weather':
+        keyword_index = 3
+    elif message == 'Food':
+        keyword_index = 4
+    elif message == 'Fun':
+        keyword_index = 5
+    elif message == 'Traffic':
+        keyword_index = 6
+    elif message == 'Location':
+        keyword_index = 7
+    elif message == 'App':
+        keyword_index = 8
+    elif message == 'Company':
+        keyword_index = 9
+    return keyword_index
 
-        def search(url, term):
-            uri = url + term
-            response = requests.get(uri)
-            results = json.loads(response.text)
-            return results
 
-        if message == 'Sports':
-            keyword_index = 0
-        elif message == 'Game':
-            keyword_index = 1
-        elif message == 'Technology':
-            keyword_index = 2
-        elif message == 'Weather':
-            keyword_index = 3
-        elif message == 'Food':
-            keyword_index = 4
-        elif message == 'Fun':
-            keyword_index = 5
-        elif message == 'Traffic':
-            keyword_index = 6
-        elif message == 'Location':
-            keyword_index = 7
-        elif message == 'App':
-            keyword_index = 8
-        elif message == 'Company':
-            keyword_index = 9
+def handle(es_request):
+    message = es_request.POST.get('Search', None)
+    keyword_index = getIndex(message)
+    domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
+    result = search(domain, keywords[keyword_index])
+    myLength = int(result['hits']['total'])
+    print myLength
+    c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
+    t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
+    s_data = [res['_source']['sentiment'] for res in result['hits']['hits']]
 
-        domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
-        result = search(domain, keywords[keyword_index])
-        c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
-        t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
-        s_data = [res['_source']['sentiment'] for res in result['hits']['hits']]
+    hits = len(c_data)
+    length = {'hits': hits}
+    coordinates = {}
+    twitts = {}
+    sentiments = {}
 
-        hits = len(c_data)
-        length = {'hits': hits}
-        coordinates = {}
-        twitts = {}
-        sentiments = {}
+    for i in range(hits):
+        if (c_data[i][0] < -90):
+            c_data[i][0] += 180
+        coordinates[i] = {'lat': c_data[i][1], 'lng': c_data[i][0]}
+        twitts[i] = t_data[i]
+        if(s_data[i]):
+            sentiments[i] = s_data[i]
+        else:
+            sentiments[i] = "null"
 
-        for i in range(hits):
-            if (c_data[i][0] < -90):
-                c_data[i][0] += 180
-            coordinates[i] = {'lat': c_data[i][1], 'lng': c_data[i][0]}
-            twitts[i] = t_data[i]
-            if(s_data[i]):
-                sentiments[i] = s_data[i]
-            else:
-                sentiments[i] = "null"
+    data = {'coordinates': coordinates, 'length': length, 'twitts': twitts, 'sentiments': sentiments}
+    return JsonResponse(data)
 
-        data = {'coordinates': coordinates, 'length': length, 'twitts': twitts, 'sentiments': sentiments}
-        return JsonResponse(data)
-    else:
-        message = es_request.POST.get('Search', None)
 
-        def search(url, term):
-            uri = url + term
-            response = requests.get(uri)
-            results = json.loads(response.text)
-            return results
+def polling(request):
+    message = request.GET.get('Search', None)
+    old_len = request.GET.get('Num', None)
+    keyword_index = getIndex(message)
+    domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
+    result = search(domain, keywords[keyword_index])
+    new_len = int(result['hits']['total'])
+    c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
+    t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
+    s_data = [res['_source']['sentiment'] for res in result['hits']['hits']]
+    hits = len(c_data)
+    coordinates = {}
+    twitts = {}
+    sentiments = {}
 
-        if message == 'Sports':
-            keyword_index = 0
-        elif message == 'Game':
-            keyword_index = 1
-        elif message == 'Technology':
-            keyword_index = 2
-        elif message == 'Weather':
-            keyword_index = 3
-        elif message == 'Food':
-            keyword_index = 4
-        elif message == 'Fun':
-            keyword_index = 5
-        elif message == 'Traffic':
-            keyword_index = 6
-        elif message == 'Location':
-            keyword_index = 7
-        elif message == 'App':
-            keyword_index = 8
-        elif message == 'Company':
-            keyword_index = 9
+    for i in range(hits):
+        if (c_data[i][0] < -90):
+            c_data[i][0] += 180
+        coordinates[i] = {'lat': c_data[i][1], 'lng': c_data[i][0]}
+        twitts[i] = t_data[i]
+        if (s_data[i]):
+            sentiments[i] = s_data[i]
+        else:
+            sentiments[i] = "null"
 
-        domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
-        result = search(domain, keywords[keyword_index])
-        c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
-        hits = len(c_data)
-
-        data = {'hits': hits}
-        return JsonResponse(data)
+    data = {'coordinates': coordinates, 'new_len': new_len, 'old_len': old_len, 'twitts': twitts, 'sentiments': sentiments}
+    return JsonResponse(data)
 
 @csrf_exempt
 def handle_sns(request):
-    context = {"message":"Outside"}
+    context = {"message": "Outside"}
     if request.method == "GET":
         return render(request, 'MapApp/map.html', {'app_name': 'TwittMap'})
     else:
@@ -140,6 +137,7 @@ def handle_sns(request):
                 "coordinates": [lat,lng],
                 "sentiment": sentiment
             }
-            print requests.post('http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
+            # print requests.post('http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
             context = {"message": "Notification"}
+            # return JsonResponse(upload_data)
     return render(request, 'MapApp/map.html', context, {'app_name': 'TwittMap'})

@@ -86,10 +86,12 @@
 
 </div>
 <script>
+    var center = {lat: 20, lng: 150.644};
+    var map;
+    var markers = [];
 
     function initMap() {
-        var center = {lat: 20, lng: 150.644};
-        var map = new google.maps.Map(document.getElementById('map'), {
+        map = new google.maps.Map(document.getElementById('map'), {
             zoom: 2,
             center: center,
             mapTypeId: 'roadmap',
@@ -102,85 +104,114 @@
         {#---Ajax---#}
         $('#listform').on('submit', function (event) {
             event.preventDefault();
+            var positive_marker = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+            var negative_marker = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+            var neutral_marker = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            var marker_icon = {positive: {icon: positive_marker},negative: {icon: negative_marker},neutral: {icon: neutral_marker}};
+            var marker_title = {positive: 'Positive Tweet', negative: 'Negative Tweet', neutral: 'Neutral Tweet'}
             var key_word = document.getElementById("KeyWords");
             var key_word_value = key_word.options[key_word.selectedIndex].value;
-            $.ajax({
+
+            var getting = {
                 url: '/handle/',
                 type: 'POST',
+                timeout: 8000,
                 data: {Search: key_word_value, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
 
                 success: function (json) {
-                    var map = new google.maps.Map(document.getElementById('map'), {
-                        zoom: 2,
-                        center: center,
-                        mapTypeId: 'roadmap',
-                        scaleControl: true,
-                        streetViewControl: true,
-                        rotateControl: true,
-                        fullscreenControl: true
-                    });
-                    
-                    for (var i = 0; i < json.length.hits; i++) {
+                    clearMarkers();
+                    var num = parseInt(json.length.hits);
+                    for (var i = 0; i < num; i++) {
                         var latlng = new google.maps.LatLng(parseFloat(json.coordinates[i].lat),
                             parseFloat(json.coordinates[i].lng));
                         var contentString = json.twitts[i];
                         var sentiment = json.sentiments[i];
-
-                        if(sentiment == "positive") {
-                            var marker = new google.maps.Marker({
-                                map: map,
-                                animation: google.maps.Animation.DROP,
-                                position: latlng,
-                                title: 'Positive Tweet',
-                                icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
-                            });
-                        } else if(sentiment == "negative") {
-                            var marker = new google.maps.Marker({
-                                map: map,
-                                animation: google.maps.Animation.DROP,
-                                position: latlng,
-                                title: 'Negative Tweet',
-                                icon:'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                            });
-                        } else if(sentiment == "neutral") {
-                            var marker = new google.maps.Marker({
-                                map: map,
-                                animation: google.maps.Animation.DROP,
-                                position: latlng,
-                                title: 'Neutral Tweet',
-                                icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                            })
-                        } else {
-                            var marker = new google.maps.Marker({
-                                map: map,
-                                position: latlng,
-                                animation: google.maps.Animation.DROP,
-                                title: 'Normal Tweet'
-                            });
-                        }
-
+                        var marker = new google.maps.Marker({
+                            map: map,
+                            position: latlng,
+                            animation: google.maps.Animation.DROP,
+                            title: marker_title[sentiment],
+                            icon: marker_icon[sentiment].icon
+                        });
                         addInfo(marker, contentString);
                         marker.setMap(map);
+                        markers.push(marker);
                     }
-                    myQuery();
+                    
+                    function Polling() {
+                        $.ajax({
+                            url: '/polling/',
+                            type: 'GET',
+                            data: {Search: key_word_value, Num: num, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
+
+                            success: function (json) {
+                                num = parseInt(json.new_len);
+                                $("#tweetspan").text(num);
+
+                                for(i = json.old_len; i < json.new_len; i++) {
+                                    var latlng = new google.maps.LatLng(parseFloat(json.coordinates[i].lat),
+                                        parseFloat(json.coordinates[i].lng));
+                                    var contentString = json.twitts[i];
+                                    var sentiment = json.sentiments[i];
+                                    var marker = new google.maps.Marker({
+                                        map: map,
+                                        position: latlng,
+                                        animation: google.maps.Animation.DROP,
+                                        title: marker_title[sentiment],
+                                        icon: marker_icon[sentiment].icon
+                                    });
+                                    addInfo(marker, contentString);
+                                    marker.setMap(map);
+                                    markers.push(marker);
+                                }
+                            }
+                        });
+                        setTimeout(Polling, 1000);
+                    }
+                    Polling();
                 }
-            });
+            };
+            $.ajax(getting);
         });
     }
 
-    function myQuery() {
-        var key_word = document.getElementById("KeyWords");
-        var key_word_value = key_word.options[key_word.selectedIndex].value;
+{#    function myQuery() {#}
+{#        var key_word = document.getElementById("KeyWords");#}
+{#        var key_word_value = key_word.options[key_word.selectedIndex].value;#}
+{#        $.ajax({#}
+{#            url: '/handle/',#}
+{#            type: 'GET',#}
+{#            data: {Search: key_word_value, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},#}
+{##}
+{#            success: function(json) {#}
+{#                $("#tweetspan").text(json.hits);#}
+{#            }#}
+{#        });#}
+{#        setTimeout(myQuery,1000);#}
+{#    }#}
+    
+    function testMarker() {
         $.ajax({
-            url: '/handle/',
-            type: 'GET',
-            data: {Search: key_word_value, csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()},
+            url: '/handle_sns/',
+            type: 'POST',
 
             success: function(json) {
-                $("#tweetspan").text(json.hits);
+                var latlng = new google.maps.LatLng(parseFloat(json.coordinates.lat),
+                            parseFloat(json.coordinates.lng));
+                var contentString = json.twitts;
+                var sentiment = json.sentiments;
+
+                var marker = new google.maps.Marker({
+                    map: map,
+                    position: latlng,
+                    animation: google.maps.Animation.DROP,
+                    title: 'Title'
+                });
+                addInfo(marker, contentString);
+                marker.setMap(map);
+                setTimeout(testMarker, 1000);
             }
         });
-        setTimeout(myQuery,1000);
     }
 
     function addInfo(marker, contentString) {
@@ -192,6 +223,13 @@
             infowindow.open(map, marker);
         })
     }
+
+    function clearMarkers() {
+        for (var i = 0; i < markers.length; i++) {
+          markers[i].setMap(null);
+        }
+        markers = [];
+      }
 
 
 </script>
