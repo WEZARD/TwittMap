@@ -33,7 +33,7 @@ def worker(queue):
                     except Exception as e:
                         sentiment = "neutral"
 
-                    sns_message = {"tweet": tweet, "lat": lat, "lng": lng, "sentiment": sentiment}
+                    sns_message = {"lat": lat, "lng": lng, "sentiment": sentiment}
                     print("SNS messsage: " + str(sns_message))
                     sns.publish(TargetArn=arn, Message=json.dumps({'default': json.dumps(sns_message)}))
 
