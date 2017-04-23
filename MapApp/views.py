@@ -62,7 +62,6 @@ def handle(es_request):
     domain = 'http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/_search?size=9999&pretty=true&q='
     result = search(domain, keywords[keyword_index])
     myLength = int(result['hits']['total'])
-    print myLength
     c_data = [res['_source']['coordinates'] for res in result['hits']['hits']]
     t_data = [res['_source']['twitts'] for res in result['hits']['hits']]
     s_data = [res['_source']['sentiment'] for res in result['hits']['hits']]
@@ -115,6 +114,7 @@ def polling(request):
     data = {'coordinates': coordinates, 'new_len': new_len, 'old_len': old_len, 'twitts': twitts, 'sentiments': sentiments}
     return JsonResponse(data)
 
+
 @csrf_exempt
 def handle_sns(request):
     context = {"message": "Outside"}
@@ -131,13 +131,14 @@ def handle_sns(request):
             lat = message.get('lat')
             lng = message.get('lng')
             sentiment = message.get('sentiment')
+            coordinate = [lat, lng]
 
             upload_data = {
                 "twitts": tweet,
-                "coordinates": [lat,lng],
+                "coordinates": coordinate,
                 "sentiment": sentiment
             }
-            print requests.post('http://search-mapapp-ngnudw3cbpxlbtuzbknlvcgujy.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
+            print requests.post('http://search-trends-jrxihqihqwdzupkozsfp42mqx4.us-east-1.es.amazonaws.com/twittermap/data', json=upload_data)
             context = {"message": "Notification"}
 
-    return render(request, 'MapApp/map.html', context, {'app_name': 'TwittMap'})
+    return render(request, 'MapApp/map.html', context)
